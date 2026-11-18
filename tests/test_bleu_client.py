@@ -11,6 +11,7 @@ import pytest
 from bleu_client import (
     BASE_URL,
     call_endpoint,
+    conversation_length,
     cosine_similarity,
     extract_chat_text,
     extract_embeddings,
@@ -211,3 +212,24 @@ def test_extract_error_message(body, expected):
 def test_preserve_line_breaks(text, expected):
     """Each newline becomes a Markdown hard break so "•" lines don't merge into one paragraph."""
     assert preserve_line_breaks(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("messages", "expected"),
+    [
+        pytest.param([], 0, id="empty-conversation"),
+        pytest.param([{"role": "user", "content": "Hello!"}], 6, id="one-message"),
+        pytest.param(
+            [
+                {"role": "user", "content": "abc"},
+                {"role": "assistant", "content": "x" * 997},
+            ],
+            1000,
+            id="exactly-at-free-limit",
+        ),
+        pytest.param([{"role": "user"}], 0, id="missing-content"),
+    ],
+)
+def test_conversation_length(messages, expected):
+    """Sums content characters across all turns; roles and missing content add nothing."""
+    assert conversation_length(messages) == expected

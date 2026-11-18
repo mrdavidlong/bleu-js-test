@@ -20,12 +20,17 @@ from streamlit.errors import StreamlitSecretNotFoundError
 
 from bleu_client import (
     call_endpoint,
+    conversation_length,
     extract_chat_text,
     extract_embeddings,
     preserve_line_breaks,
     similarity_matrix,
 )
 from error_cases import ERROR_CASES, grade_case, resolve_api_key
+
+# The free (trial) plan rejects a chat call whose messages total more than this
+# many characters (API error code `plan_prompt_length_exceeded`).
+FREE_PLAN_PROMPT_CHAR_LIMIT = 1000
 
 # The free tier is 500 lifetime calls, so cap how many one browser session
 # can spend. A reload resets this; the passcode is the real protection.
@@ -109,6 +114,17 @@ def chat_tab(api_key: str) -> None:
     )
 
     history = st.session_state.setdefault("chat_history", [])
+    # Every turn resends the whole conversation, and Bleu.js's canned replies
+    # are ~450 characters each, so the free plan's limit is hit within a few
+    # turns. Show the running size and let the user start over.
+    clear_column, size_column = st.columns([1, 3])
+    if clear_column.button("Clear conversation", disabled=not history):
+        history.clear()
+        st.rerun()
+    size_column.caption(
+        f"Conversation so far: {conversation_length(history):,} characters "
+        f"(free plan limit: {FREE_PLAN_PROMPT_CHAR_LIMIT:,}, sent again with every message)"
+    )
     for message in history:
         st.chat_message(message["role"]).markdown(
             preserve_line_breaks(message["content"])

@@ -200,3 +200,15 @@ def preserve_line_breaks(text: str) -> str:
     line with two spaces is Markdown's "hard line break".
     """
     return text.replace("\n", "  \n")
+
+
+def conversation_length(messages: list[dict[str, str]]) -> int:
+    """Total characters across all message contents in a chat conversation.
+
+    The free (trial) plan rejects a /chat call whose messages add up to more
+    than 1,000 characters (error code `plan_prompt_length_exceeded`), and the
+    whole conversation is resent on every turn, so the UI shows this count.
+    Each message is a {"role": ..., "content": ...} dict; a missing content
+    counts as 0.
+    """
+    return sum(len(message.get("content", "")) for message in messages)
