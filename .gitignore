@@ -1,0 +1,9 @@
+# Local virtual environment created by uv
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets: the real API key and passcode never go into git
+.env
+.streamlit/secrets.toml
