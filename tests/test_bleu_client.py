@@ -15,6 +15,7 @@ from bleu_client import (
     extract_chat_text,
     extract_embeddings,
     extract_error_message,
+    preserve_line_breaks,
     similarity_matrix,
 )
 
@@ -193,3 +194,20 @@ def test_similarity_matrix_single_vector():
 def test_extract_error_message(body, expected):
     """Each common error-body shape yields its message; empty or unknown shapes yield None."""
     assert extract_error_message(body) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        pytest.param(
+            "Intro.\n\n• one\n• two",
+            "Intro.  \n  \n• one  \n• two",
+            id="bleu-bullet-reply",
+        ),
+        pytest.param("no newlines", "no newlines", id="single-line"),
+        pytest.param("", "", id="empty"),
+    ],
+)
+def test_preserve_line_breaks(text, expected):
+    """Each newline becomes a Markdown hard break so "•" lines don't merge into one paragraph."""
+    assert preserve_line_breaks(text) == expected

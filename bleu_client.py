@@ -189,3 +189,14 @@ def extract_error_message(body: Any) -> str | None:
         if body.get(key):
             return str(body[key])
     return None
+
+
+def preserve_line_breaks(text: str) -> str:
+    """Make every newline in a chat reply show up as a line break in Markdown.
+
+    Streamlit renders chat text as Markdown, where a single newline is folded
+    into the surrounding paragraph. Bleu.js replies put each "•" point on its
+    own line, so without this they run together into one paragraph. Ending a
+    line with two spaces is Markdown's "hard line break".
+    """
+    return text.replace("\n", "  \n")
