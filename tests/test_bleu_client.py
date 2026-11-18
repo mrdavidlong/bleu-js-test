@@ -18,6 +18,7 @@ from bleu_client import (
     extract_error_message,
     preserve_line_breaks,
     similarity_matrix,
+    similarity_table_rows,
 )
 
 
@@ -233,3 +234,19 @@ def test_preserve_line_breaks(text, expected):
 def test_conversation_length(messages, expected):
     """Sums content characters across all turns; roles and missing content add nothing."""
     assert conversation_length(messages) == expected
+
+
+def test_similarity_table_rows_label_both_axes():
+    """Two sentences: each row starts with its 1-based label, scores rounded to 3 places."""
+    rows = similarity_table_rows(["1. cat", "2. car"], [[1.0, 0.98765], [0.98765, 1.0]])
+
+    assert rows == [
+        {"Sentence": "1. cat", "1. cat": 1.0, "2. car": 0.988},
+        {"Sentence": "2. car", "1. cat": 0.988, "2. car": 1.0},
+    ]
+
+
+def test_similarity_table_rows_rejects_mismatched_labels():
+    """Three labels for a 2x2 matrix: raises ValueError instead of a misaligned table."""
+    with pytest.raises(ValueError, match="3 labels for a 2-row matrix"):
+        similarity_table_rows(["a", "b", "c"], [[1.0, 0.0], [0.0, 1.0]])

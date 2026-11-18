@@ -25,6 +25,7 @@ from bleu_client import (
     extract_embeddings,
     preserve_line_breaks,
     similarity_matrix,
+    similarity_table_rows,
 )
 from error_cases import ERROR_CASES, grade_case, resolve_api_key
 
@@ -191,16 +192,13 @@ def similarity_tab(api_key: str) -> None:
     short_labels = [
         f"{index + 1}. {sentence[:30]}" for index, sentence in enumerate(sentences)
     ]
-    matrix = similarity_matrix(vectors)
     st.dataframe(
-        {
-            label: [round(row[column], 3) for row in matrix]
-            for column, label in enumerate(short_labels)
-        },
-        hide_index=False,
+        similarity_table_rows(short_labels, similarity_matrix(vectors)),
+        hide_index=True,
     )
     st.caption(
-        "Rows and columns are in the same order as the sentences. 1.0 = identical."
+        "Find a sentence on the left and read across to see how similar Bleu.js "
+        "thinks it is to each sentence on top. 1.0 = identical."
     )
 
 

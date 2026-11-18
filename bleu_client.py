@@ -212,3 +212,27 @@ def conversation_length(messages: list[dict[str, str]]) -> int:
     counts as 0.
     """
     return sum(len(message.get("content", "")) for message in messages)
+
+
+def similarity_table_rows(
+    labels: list[str], matrix: list[list[float]]
+) -> list[dict[str, str | float]]:
+    """Turn a similarity matrix into table rows labelled by sentence on both axes.
+
+    Each row is a dict whose "Sentence" key holds that row's label and whose
+    other keys are the column labels, each mapped to the similarity rounded
+    to 3 decimals. Labelling rows this way avoids the table's default 0-based
+    row numbers, which don't match the 1-based sentence numbers.
+
+    Raises:
+        ValueError: when the number of labels doesn't match the matrix size.
+    """
+    if len(labels) != len(matrix):
+        raise ValueError(f"{len(labels)} labels for a {len(matrix)}-row matrix")
+    rows: list[dict[str, str | float]] = []
+    for row_label, scores in zip(labels, matrix):
+        row: dict[str, str | float] = {"Sentence": row_label}
+        for column_label, score in zip(labels, scores):
+            row[column_label] = round(score, 3)
+        rows.append(row)
+    return rows
