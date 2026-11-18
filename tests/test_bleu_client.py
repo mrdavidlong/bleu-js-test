@@ -11,11 +11,14 @@ import pytest
 from bleu_client import (
     BASE_URL,
     call_endpoint,
+    conversation_length,
     cosine_similarity,
     extract_chat_text,
     extract_embeddings,
     extract_error_message,
+    preserve_line_breaks,
     similarity_matrix,
+    similarity_table_rows,
 )
 
 
@@ -193,3 +196,57 @@ def test_similarity_matrix_single_vector():
 def test_extract_error_message(body, expected):
     """Each common error-body shape yields its message; empty or unknown shapes yield None."""
     assert extract_error_message(body) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        pytest.param(
+            "Intro.\n\n• one\n• two",
+            "Intro.  \n  \n• one  \n• two",
+            id="bleu-bullet-reply",
+        ),
+        pytest.param("no newlines", "no newlines", id="single-line"),
+        pytest.param("", "", id="empty"),
+    ],
+)
+def test_preserve_line_breaks(text, expected):
+    """Each newline becomes a Markdown hard break so "•" lines don't merge into one paragraph."""
+    assert preserve_line_breaks(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("messages", "expected"),
+    [
+        pytest.param([], 0, id="empty-conversation"),
+        pytest.param([{"role": "user", "content": "Hello!"}], 6, id="one-message"),
+        pytest.param(
+            [
+                {"role": "user", "content": "abc"},
+                {"role": "assistant", "content": "x" * 997},
+            ],
+            1000,
+            id="exactly-at-free-limit",
+        ),
+        pytest.param([{"role": "user"}], 0, id="missing-content"),
+    ],
+)
+def test_conversation_length(messages, expected):
+    """Sums content characters across all turns; roles and missing content add nothing."""
+    assert conversation_length(messages) == expected
+
+
+def test_similarity_table_rows_label_both_axes():
+    """Two sentences: each row starts with its 1-based label, scores rounded to 3 places."""
+    rows = similarity_table_rows(["1. cat", "2. car"], [[1.0, 0.98765], [0.98765, 1.0]])
+
+    assert rows == [
+        {"Sentence": "1. cat", "1. cat": 1.0, "2. car": 0.988},
+        {"Sentence": "2. car", "1. cat": 0.988, "2. car": 1.0},
+    ]
+
+
+def test_similarity_table_rows_rejects_mismatched_labels():
+    """Three labels for a 2x2 matrix: raises ValueError instead of a misaligned table."""
+    with pytest.raises(ValueError, match="3 labels for a 2-row matrix"):
+        similarity_table_rows(["a", "b", "c"], [[1.0, 0.0], [0.0, 1.0]])
